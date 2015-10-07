@@ -65,10 +65,36 @@ statuses.print()
 ssc.checkpoint(checkpointDir)
 ssc.start()
 ssc.awaitTermination()
+//the screend starts to scroll
 ```
 
-*Collects the feed in a sliding window of 60 seconds*
+*Collects the feed in a sliding window of 60 seconds, Calculates the most 5 retweeted tweets within the 60 second window (see Tip c below), Prints the top 5 tweets calculated every second for the sliding window*
 
 ```scala
-
+//twitter streaming
+val ssc = new StreamingContext(new SparkConf(),Seconds(1))
+val tweets = TwitterUtils.createStream(ssc, None)
+//filter twitter that are retweet, return twitter content
+val retweetStream = tweets.filter(_.isRetweet).map { status => 
+    (
+    //get original tweet text
+    status.getRetweetedStatus().getText(),
+    //get original tweet retweet count
+    status.getRetweetedStatus().getRetweetCount()
+    )
+}
+//count by window and key. 
+val counts = retweetStream.countByValueAndWindow(Seconds(60), Seconds(1))
+//transform the data to key-value pairs, sort by key
+val sortedCounts = counts.map { case(text, count) => (count, text) }.transform(rdd => rdd.sortByKey(false))
+//print results
+sortedCounts.foreach(rdd =>
+        println("\nTop 5 retweets:\n" + rdd.take(5).mkString("\n")))
+ssc.checkpoint(checkpointDir)
+ssc.start()
+ssc.awaitTermination()
 ```
+
+Result
+
+![5-most-retwetted](screenshot.png)
