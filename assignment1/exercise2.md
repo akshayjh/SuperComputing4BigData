@@ -79,20 +79,17 @@ val retweetStream = tweets.filter(_.isRetweet).map { status =>
     (
     //get original tweet text
     status.getRetweetedStatus().getText(),
-    //get original tweet retweet count
-    status.getRetweetedStatus().getRetweetCount()
+    //get original tweet retweet count (status.getRetweetedStatus().getRetweetCount(),status.getRetweetedStatus().getRetweetCount())                   
     )
 }
-//count by window and key. 
-val counts = retweetStream.countByValueAndWindow(Seconds(60), Seconds(1))
-//transform the data to key-value pairs, sort by key
-val sortedCounts = counts.map { case(text, count) => (count, text) }.transform(rdd => rdd.sortByKey(false))
-//print results
-sortedCounts.foreach(rdd =>
+val counts = retweetStream.reduceByKeyAndWindow((x:(Long,Long),y:(Long,Long))=>(math.max(x._1,y._1),math.min(x._2,y._2)),Seconds(60), Seconds(1))
+    val sortedCounts = counts.map { case(text, count) => (count._1-count._2, text) }
+                         .transform(rdd => rdd.sortByKey(false))
+    sortedCounts.foreach(rdd =>
         println("\nTop 5 retweets:\n" + rdd.take(5).mkString("\n")))
-ssc.checkpoint(checkpointDir)
-ssc.start()
-ssc.awaitTermination()
+    ssc.checkpoint(checkpointDir)
+    ssc.start()
+    ssc.awaitTermination()
 ```
 
 Result
