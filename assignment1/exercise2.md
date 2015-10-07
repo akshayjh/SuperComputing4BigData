@@ -79,7 +79,8 @@ val retweetStream = tweets.filter(_.isRetweet).map { status =>
     (
     //get original tweet text
     status.getRetweetedStatus().getText(),
-    //get original tweet retweet count (status.getRetweetedStatus().getRetweetCount(),status.getRetweetedStatus().getRetweetCount())                   
+    //get original tweet retweet count 
+    (status.getRetweetedStatus().getRetweetCount(),status.getRetweetedStatus().getRetweetCount())                  
     )
 }
 val counts = retweetStream.reduceByKeyAndWindow((x:(Long,Long),y:(Long,Long))=>(math.max(x._1,y._1),math.min(x._2,y._2)),Seconds(60), Seconds(1))
